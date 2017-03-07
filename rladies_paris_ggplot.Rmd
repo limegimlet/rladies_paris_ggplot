@@ -1,0 +1,263 @@
+---
+title: "R-Ladies intro to ggplot2 tutorial"
+author: "Sarah Hosking"
+date: "March 7, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(lubridate)
+library(tidyverse)
+library(GGally)
+
+library(reshape2) #plot missing vals
+
+theme_set(theme_bw())
+
+```
+
+# Paris Air Pollution
+
+Because we all need a break from car, iris and most of all, election, data.
+
+## Load Data
+
+```{r}
+
+airparif <- read_rds('airparif.rds')
+dim(airparif)
+```
+
+```{r}
+str(airparif)
+```
+
+```{r}
+head(airparif)
+```
+
+```{r}
+tail(airparif)
+```
+
+```{r}
+summary(airparif)
+```
+
+
+## What are we looking at?
+
+
+```{r}
+
+names(airparif)
+
+```
+
+What the abbreviations mean:
+
+* `PM25` = fine particulate < 2.5 mm
+* `PM10` = fine particulate < 10 mm
+* `03` = Ozone
+* `NO2` = Nitrogen Dioxide (Azote)
+* `CO` = Carbon monoxide
+
+## Explore the data
+
+
+### Plot a correlation matrix
+
+```{r ggpairs}
+
+# create a sample - ggpairs takes time.
+set.seed(888)
+sample <- subset(airparif, select = c(PM10, PM25, NO2, O3, month))
+sample <- sample[sample(1:nrow(sample),1000),]
+
+#ggpairs()
+```
+
+
+## Summarize and plot
+
+First, need to prepare the data
+
+```{r}
+
+# Option 1: load the summarized data
+#airparif.long <- read_rds("airparif_long.rds")
+
+
+# Option 2: summarize data yourself
+# airparif.long <- airparif %>% 
+#   gather(, 
+#          key = , value = , 
+#          na.rm = TRUE) %>% 
+#   group_by() %>% 
+#   summarise(mean = ,
+#             median = ,
+#             max =)
+
+```
+
+Now plot this new df
+
+```{r}
+
+```
+
+## How many days at each pollution level?
+
+```{r}
+
+# Option 1: load the summarized data
+#levels <- read_rds("levels.rds")
+
+
+# Option 2: summarize data yourself
+
+# First, load function to tag pollution levels
+pollution.level <- function(x, lower = 0, upper = 100, 
+                            by = 25, sep = "-", above.char = "+") {
+ 
+ labs <- c("very low", "low", "medium", "high", "very high")
+
+ cut(floor(x), 
+     breaks = c(seq(lower, upper, by = by), Inf),
+     right = FALSE, 
+     labels = labs)
+}
+
+# Then complete this code
+# levels <-  airparif.long %>%
+#   group_by( ) %>% 
+#   mutate_all(funs())
+
+```
+
+
+How many days at each level for each pollutant?
+
+```{r}
+
+# create a bar plot
+# p <- ggplot(levels, aes(median, fill = pollutant))
+# p + geom_bar()
+
+```
+
+Make this easier to read
+
+```{r}
+
+```
+
+
+# BONUS STUFF (If we have time)
+
+## Make plots prettier
+
+```{r}
+
+# only plot PM pollutants
+# particles <- airparif.long %>% 
+#   filter(pollutant %in% c('PM10', 'PM25')) 
+# 
+# 
+# p <- ggplot(particles, aes(date, mean))
+# 
+# p + 
+#   geom_line(aes(y = median, colour = pollutant)) + 
+#   scale_x_date() + 
+#   theme_
+  
+
+
+```
+
+
+## qplot
+
+`qplot` is part of `ggplot2`, and stands for "quick plots". Its syntax is similar to base plotting, and is less verbose than `ggplot()`.
+
+```{r qplot hists}
+
+qplot(PM10, data = airparif)
+
+# increase bins
+qplot(data = airparif, PM10, binwidth = 5)
+
+```
+
+
+It's meant, however, to work with vectors. Here's a demo.
+
+```{r}
+
+# qplot meant to work with vectors
+a <- c('A', 'B', 'C')
+b <- c(1, 2, 3)
+
+# qplot
+q <- qplot(a,b)
+q
+
+```
+
+
+```{r}
+
+# ggplot needs a dataframe
+d <- data.frame(a,b)
+
+# ggplot
+p <- ggplot(data = d, aes(a,b)) +
+  geom_point()
+p
+
+
+```
+
+
+```{r}
+
+# change var
+a <- c('X','Y','Z')
+
+# with qplot
+q
+```
+
+```{r}
+
+# with ggplot
+p
+```
+
+## Visualize missing values with ggplot
+
+```{r}
+# credit to:
+# http://www.njtierney.com/r/missing%20data/rbloggers/2015/12/01/ggplot-missing-data/
+missing.data <- function(x){
+  
+  x %>% 
+    is.na %>%
+    melt %>%
+    ggplot(data = .,
+           aes(x = Var2,
+               y = Var1)) +
+    geom_raster(aes(fill = value)) +
+    scale_fill_grey(name = "",
+                    labels = c("Present","Missing")) +
+    theme_minimal() + 
+    theme(axis.text.x  = element_text(angle=45, vjust=0.5)) + 
+    labs(x = "Variables in Dataset",
+         y = "Rows / observations")
+}
+
+#missing.data(airparif[,1:7])
+```
+
