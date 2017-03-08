@@ -1,8 +1,10 @@
 ---
-title: "R-Ladies intro to ggplot2 tutorial"
+title: "RLadies ggplot2"
 author: "Sarah Hosking"
-date: "March 7, 2017"
-output: html_document
+date: "March 8, 2017"
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -18,9 +20,33 @@ theme_set(theme_bw())
 
 ```
 
+# Why ggplot?
+
+Big advantages:
+
+* consistent structure regardless of plot type
+* easy to iterate
+* *excellent grouping and faceting*
+* requires tidy data
+* plots look pretty good OOTB (albeit with room for improvement)
+
+
+Some complaints:
+
+* sometimes can be verbose
+* slow?
+* not as good for print publication - ?
+
+
 # Paris Air Pollution
 
 Because we all need a break from car, iris and most of all, election, data.
+
+More seriously, it was because last December I found myself repeatedly wondering:
+
+* So just how bad is Paris' air pollution, really?
+and
+* Is there a bad time to go running?
 
 ## Load Data
 
@@ -64,41 +90,227 @@ What the abbreviations mean:
 * `NO2` = Nitrogen Dioxide (Azote)
 * `CO` = Carbon monoxide
 
-## Explore the data
 
+# Explore distributions
 
-### Plot a correlation matrix
+### DEMO: Histogram
 
-```{r ggpairs}
+```{r}
 
-# create a sample - ggpairs takes time.
-set.seed(888)
-sample <- subset(airparif, select = c(PM10, PM25, NO2, O3, month))
-sample <- sample[sample(1:nrow(sample),1000),]
+ggplot(data = airparif, aes(x = PM10)) +
+  geom_histogram(binwidth = 5)
 
-#ggpairs()
 ```
 
 
-## Summarize and plot
+You can also use expressions for your data
+```{r}
+ggplot(data = airparif, aes(x = PM10 + PM25)) +
+  geom_histogram(binwidth = 5)
 
-First, need to prepare the data
+```
+
+### HANDS ON: Examine the other pollutants
+
+Explore `PM25`, `NO2`, `O3`, `CO`. Anything stand out?
+
+```{r explore distributions}
+
+# basic ggplot template for univariate plots
+
+p <- ggplot(airparif, aes(x=NO2)) +
+  geom_histogram()
+
+
+```
+
+```{r add vert line}
+
+# "low" levels are > 25. Mark with a vertical line
+p + 
+  geom_vline(xintercept = 25, colour = "lightgreen")
+
+```
+
+### DEMO: How does the distribution change over the year?
+
+To find out let's facet by month.
+
+```{r}
+
+p +
+  geom_vline(xintercept = 25, colour = 'lightgreen') + 
+  facet_wrap(~month)
+
+```
+
+
+### DEMO: How does the distribution change over the years?
+
+To find out let's facet by month
+
+```{r}
+
+p +
+  geom_vline(xintercep=t = 25, colour = 'lightgreen') + 
+  facet_wrap(~month)
+
+```
+
+### HANDS ON: What do the boxplots look like? 
+
+```{r}
+
+p <- ggplot(airparif, aes(year, NO2)) 
+
+p + 
+  geom_boxplot()
+```
+
+#### Including scales
+
+To zoom in, you can add limits to the x or y scale. But there's a catch
+
+```{r avoid this}
+ p +
+  geom_boxplot() +
+  scale_y_continuous(limits = c(0, 60))
+
+```
+
+Notice how the proportions and positions of the boxes have changed. That's because we've removed all the points above 60.
+
+Instead, use `coord_cartesian`. This creates a true zoom, without distorting IQR.
+
+```{r do this}
+
+p + 
+  geom_boxplot() + 
+  coord_cartesian(ylim = c(0,60))
+
+```
+
+
+# Adding more variables to plots
+
+To segment your plot into different groups, you can specify a variable for color, shape, linetype etc.
+
+### DEMO: Add a grouping variable
+
+What else happens when you include a "grouping"" variable in the aesthetic layer?
+
+```{r easy iteration + grouping}
+p <- ggplot(data = airparif, aes(x = PM25))
+
+# make a frequency polygon
+p + geom_freqpoly()
+
+# change the colour
+p + geom_freqpoly(color = 'blue')
+
+
+```
+
+### HANDS ON: show frequency polygons for each year in the same plot.
+
+Hint: use aesthetics
+The aesthetics available for geom_freqpoly are:
+
+* alpha
+
+* colour
+
+* group
+
+* linetype
+
+* size
+
+```{r hands on}
+
+# group by year
+# what gets added to the chart?
+p <- ggplot(airparif, aes(PM25))
+
+p <- p +
+  geom_freqpoly(aes(colour = year))
+
+
+# or group by month
+
+```
+
+With this type of plot, facets would be better.
+
+### HANDS ON: Facet the previous plot by month.
+
+This will create a grid of plots, one for each month.
+
+```{r facet previous plot by year}
+p +
+  facet_wrap(~year)
+
+```
+
+# Look at correlations
+
+### DEMO: Plot a correlation matrix
+
+```{r ggpairs, eval=FALSE, warning=FALSE, include=FALSE}
+
+# create a sample - ggpairs takes time.
+set.seed(888)
+
+# limit the number of columns
+sample <- subset(airparif, select = c(PM10, PM25, NO2, O3, CO, month))
+# limit the number of rows
+sample <- sample[sample(1:nrow(sample),1000),]
+
+# create simple correlation matrix plot
+ggpairs(data=sample,
+        columns=1:3)
+
+# more complex
+ggpairs(data=sample,
+        #columns=1:3
+        title="Pollution Correlation Matrix")
+
+
+# add smoothing & modify scatterplots, fix bins
+ggpairs(data=sample,
+        #columns=1:3
+       lower = list(continuous = wrap("smooth", alpha=1/5, shape = I('.')),
+                     combo = wrap("facethist", binwidth = 5)), 
+      title="Pollution Correlation Matrix")
+```
+
+# Summarize and plot
+
+How polluted is Paris? How many days of higher levels of pollution were there?
+
+*To answer this we first need to tidy the data.*
+
+### DEMO: Gather pollutants into one column
 
 ```{r}
 
 # Option 1: load the summarized data
-#airparif.long <- read_rds("airparif_long.rds")
+airparif.long <- read_rds("airparif_long.rds")
 
 
 # Option 2: summarize data yourself
-# airparif.long <- airparif %>% 
-#   gather(, 
-#          key = , value = , 
-#          na.rm = TRUE) %>% 
-#   group_by() %>% 
-#   summarise(mean = ,
-#             median = ,
-#             max =)
+
+airparif.long <- airparif %>% 
+   gather(PM10,PM25,NO2,O3,CO, 
+         key = 'pollutant',
+         value = 'value', 
+         na.rm = TRUE) %>% 
+   group_by(date, pollutant) %>%
+   summarise('mean' = mean(value),
+             'median' = median(value),
+             'max' = max(value))
+
+head(airparif.long)
 
 ```
 
@@ -106,9 +318,38 @@ Now plot this new df
 
 ```{r}
 
+ggplot(aes(date, median, colour = pollutant), 
+       data = airparif.long) +
+         geom_line()
+
 ```
 
+Wow, carbon monoxide (`CO`) looms over everything else.
+
+### DEMO: Drill down on fine particulate
+
+```{r}
+
+# only plot PM pollutants
+particles <- airparif.long %>% 
+  filter(pollutant %in% c('PM10', 'PM25')) 
+
+
+p <- ggplot(particles, aes(date, median))
+
+
+p + 
+  geom_line(aes(colour = pollutant)) +
+  scale_x_date(date_breaks = '3 months', date_labels = "%b %y")
+  
+```
+
+Need to add some more context to this plot. What are the levels for medium, high, and very high pollution?
+
+
 ## How many days at each pollution level?
+
+** 
 
 ```{r}
 
@@ -119,40 +360,145 @@ Now plot this new df
 # Option 2: summarize data yourself
 
 # First, load function to tag pollution levels
-pollution.level <- function(x, lower = 0, upper = 100, 
-                            by = 25, sep = "-", above.char = "+") {
+
+# OLD FUNCTION - IGNORE
+# credit to https://www.r-bloggers.com/r-function-of-the-day-cut-2/
+
+# pollution.level <- function(x, lower = 0, upper = 100, 
+#                             by = 25, sep = "-", above.char = "+") {
+ 
+# labs <- c("very low", "low", "medium", "high", "very high")
+# 
+# cut(floor(x), 
+#     breaks = c(seq(lower, upper, by = by), Inf),
+#     right = FALSE, 
+#     labels = labs)
+
+# USE THIS INSTEAD
+pollution.level <- function(x) {
  
  labs <- c("very low", "low", "medium", "high", "very high")
 
- cut(floor(x), 
-     breaks = c(seq(lower, upper, by = by), Inf),
-     right = FALSE, 
+ cut(x, 
+     breaks = c(0,15,30,50,100,999),  # NOTE: in reality, only applies to PM10!!
+     right = TRUE,
+     #include.lowest = TRUE, #new setting!
      labels = labs)
 }
 
 # Then complete this code
-# levels <-  airparif.long %>%
-#   group_by( ) %>% 
-#   mutate_all(funs())
+levels <-  airparif.long %>%
+  group_by(date, pollutant) %>% 
+  mutate_all(funs(pollution.level))
 
 ```
 
+
+### DEMO: Plot days per level per pollutant
 
 How many days at each level for each pollutant?
 
 ```{r}
 
 # create a bar plot
-# p <- ggplot(levels, aes(median, fill = pollutant))
-# p + geom_bar()
+p <- ggplot(levels, aes(median, fill = pollutant))
+p + geom_bar()
 
 ```
 
 Make this easier to read
 
 ```{r}
+p + 
+  geom_bar(position = 'dodge')
 
 ```
+
+Still hard to compare the distribution of levels for each pollutant. 
+
+### HANDS ON: How would you improve this?
+
+We can facet by pollutant.
+
+```{r}
+p + 
+  geom_bar(position = 'dodge') +
+  facet_wrap(~pollutant)
+
+```
+
+### DEMO: Does this change much from year to year? 
+
+We'll need to add a year column.
+We can do this again with dplyr and include ggplot using the pipe
+
+```{r add year var to levels df}
+
+levels %>% 
+  # separate(date, c("year", "month", "day"), sep="-") %>% 
+  mutate('year' = year(date)) %>% 
+  ggplot(aes(median, fill = pollutant)) + 
+  geom_bar(position = 'dodge') +
+  facet_grid(pollutant ~ year, scales = 'free_y')
+
+```
+
+It doesn't look like it. But if we allow the y-scale to vary, it might give us more insight.
+
+
+### HANDS ON: What about by month?
+
+You'll need to add month, similar to adding year above. Dplyr has a function to make this easy.
+
+BONUS: Look up dplyr's `separate()` function in the help.
+
+```{r }
+
+levels %>% 
+  separate(date, c("year", "month", "day"), sep="-") %>% 
+  ggplot(aes(median, fill = pollutant)) + 
+  geom_bar(position = 'dodge') +
+  facet_grid(pollutant ~ month)
+
+```
+
+Hard to tell, let's free up the y scale for each pollutant
+
+### HANDS ON: Make the y-axis scale flexible
+
+HINT: Look up `facet_grid` in the help, and look for `scales`.
+
+```{r}
+
+levels %>% 
+  separate(date, c("year", "month", "day"), sep="-") %>% 
+  ggplot(aes(median, fill = pollutant)) + 
+  geom_bar(position = 'dodge') +
+  facet_grid(pollutant ~ month, scales = "free_y")
+
+```
+
+
+### DEMO: Make plot more readable
+
+Lastly, let's fix those x-axis labels
+
+```{r fix axis labels}
+
+p <- levels %>% 
+  separate(date, c("year", "month", "day"), sep="-") %>% 
+  ggplot(aes(median, fill = pollutant)) + 
+  geom_bar(position = 'dodge') +
+  facet_grid(pollutant ~ month, scales = "free_y")
+
+p +
+  scale_y_continuous(breaks = seq(0,150, 50)) +
+  scale_x_discrete(name = "Pollution Level") +
+  theme(axis.text.x = element_text(size = 4, angle = -45, hjust = -0.1))
+  
+
+```
+
 
 
 # BONUS STUFF (If we have time)
