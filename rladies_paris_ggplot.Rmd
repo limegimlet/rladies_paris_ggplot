@@ -607,3 +607,17 @@ missing.data <- function(x){
 #missing.data(airparif[,1:7])
 ```
 
+# Takeaways
+
+Compare ggplot2 to R base plots 
+https://flowingdata.com/2016/03/22/comparing-ggplot2-and-r-base-graphics/
+http://simplystatistics.org/2016/02/11/why-i-dont-use-ggplot2/
+http://varianceexplained.org/r/why-I-use-ggplot2/
+
+qplot or ggplot?
+http://stackoverflow.com/questions/5322836/choosing-between-qplot-and-ggplot-in-ggplot2
+
+grouping vs aesthetics
+http://stackoverflow.com/questions/10357768/plotting-lines-and-the-group-aesthetic-in-ggplot2
+
+Ggplot cheatsheet: https://www.rstudio.com/wp-content/uploads/2016/11/ggplot2-cheatsheet-2.1.pdf
